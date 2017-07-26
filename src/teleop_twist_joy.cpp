@@ -48,6 +48,7 @@ struct TeleopTwistJoy::Impl
 
   int enable_button;
   int enable_turbo_button;
+  int forward_button;
 
   std::map<std::string, int> axis_linear_map;
   std::map<std::string, double> scale_linear_map;
@@ -74,6 +75,7 @@ TeleopTwistJoy::TeleopTwistJoy(ros::NodeHandle* nh, ros::NodeHandle* nh_param)
 
   nh_param->param<int>("enable_button", pimpl_->enable_button, 0);
   nh_param->param<int>("enable_turbo_button", pimpl_->enable_turbo_button, -1);
+  nh_param->param<int>("forward_button", pimpl_->forward_button, -1);
 
   if (nh_param->getParam("axis_linear", pimpl_->axis_linear_map))
   {
@@ -132,7 +134,27 @@ void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::Joy::ConstPtr& joy_msg
   // Initializes with zeros by default.
   geometry_msgs::Twist cmd_vel_msg;
 
-  if (enable_turbo_button >= 0 && joy_msg->buttons[enable_turbo_button])
+  if (enable_turbo_button >= 0 && joy_msg->buttons[enable_turbo_button] && forward_button >= 0 && joy_msg->buttons[forward_button])
+  {
+    if  (axis_linear_map.find("x") != axis_linear_map.end())
+    {
+      cmd_vel_msg.linear.x = scale_linear_turbo_map["x"];
+    }
+
+    cmd_vel_pub.publish(cmd_vel_msg);
+    sent_disable_msg = false;
+  }
+  else if (joy_msg->buttons[enable_button] && forward_button >= 0 && joy_msg->buttons[forward_button])
+  {
+    if  (axis_linear_map.find("x") != axis_linear_map.end())
+    {
+      cmd_vel_msg.linear.x = scale_linear_map["x"];
+    }
+
+    cmd_vel_pub.publish(cmd_vel_msg);
+    sent_disable_msg = false;
+  }
+  else if (enable_turbo_button >= 0 && joy_msg->buttons[enable_turbo_button])
   {
     if (axis_linear_map.find("x") != axis_linear_map.end())
     {
